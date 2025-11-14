@@ -1,14 +1,14 @@
-
 // Load tasks from localStorage on page load
 function loadTaskList() {
   if (window.localStorage) {
     if (localStorage.getItem("taskList")) {
       let data = localStorage.getItem("taskList");
       taskObj.taskList = JSON.parse(data);
-      // Update taskId to highest existing id
+
       if (taskObj.taskList.length > 0) {
         taskObj.taskId = Math.max(...taskObj.taskList.map(t => t.id));
       }
+
       displaylists();
     }
   } else {
@@ -29,25 +29,20 @@ function saveTaskList() {
 // Display all tasks
 function displaylists() {
   let ul = document.querySelector(".task-lst");
-  ul.innerHTML = ""; // Clear existing list
+  ul.innerHTML = "";
   
   taskObj.taskList.forEach(task => {
     let li = document.createElement("li");
-    let h3 = document.createElement("h3");
-    let p = document.createElement("p");
-    let difficulty = document.createElement("span");
-    let tag = document.createElement("span");
-    
-    h3.innerText = task.title;
-    p.innerText = "Urgency: " + task.urgency;
-    difficulty.innerText = "Difficulty: " + task.difficulty;
-    tag.innerText = "Tags: " + task.tags;
-    
-    li.appendChild(h3);
-    li.appendChild(p);
-    li.appendChild(difficulty);
-    li.appendChild(tag);
-    
+
+    li.innerHTML = `
+      <h3>${task.title}</h3>
+      <p>Urgency: ${task.urgency}</p>
+      <span>Difficulty: ${task.difficulty}</span>
+      <span>Tags: ${task.tags}</span>
+      <button onclick="editTask(${task.id})">Edit</button>
+      <button onclick="deleteTask(${task.id})">Delete</button>
+    `;
+
     ul.appendChild(li);
   });
 }
@@ -59,26 +54,52 @@ function addfunction() {
   let difficulty = document.querySelector('.difficuly-number').value;
   let tags = document.querySelector('.tags').value;
   
-  // Validate input
   if (add_tasks.trim() === "") {
     alert("Please enter a task title!");
     return;
   }
   
   taskObj.addTask(add_tasks, urgency, difficulty, tags);
-  saveTaskList(); // Save to localStorage
-  displaylists(); // Update display
-  
-  // Clear input fields
+  saveTaskList();
+  displaylists();
+
   document.querySelector('.task-input').value = "";
   document.querySelector('.urgecny-number').value = "";
   document.querySelector('.difficuly-number').value = "";
   document.querySelector('.tags').value = "";
 }
 
-// Set up event listener
 function add() {
   document.querySelector(".add-btn").addEventListener('click', addfunction);
+}
+
+// --- Minimal delete ---
+function deleteTask(id) {
+  taskObj.deleteTask(id);
+  displaylists();
+}
+
+// --- Minimal edit ---
+function editTask(id) {
+  id = Number(id); // FIX #1
+
+  let task = taskObj.taskList.find(t => t.id === id);
+  if (!task) return;
+
+  let title = prompt("Title:", task.title);
+  let urgency = prompt("Urgency:", task.urgency);
+  let difficulty = prompt("Difficulty:", task.difficulty);
+  let tags = prompt("Tags:", task.tags);
+
+  taskObj.updateTask(id, {
+    title: title || task.title,
+    urgency: urgency || task.urgency,
+    difficulty: difficulty || task.difficulty,
+    tags: tags || task.tags
+  });
+
+  taskObj.save();      // FIX #2
+  displaylists();      // FIX #3
 }
 
 // Initialize
