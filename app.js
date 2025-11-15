@@ -1,31 +1,5 @@
-// Load tasks from localStorage on page load
-function loadTaskList() {
-  if (window.localStorage) {
-    if (localStorage.getItem("taskList")) {
-      let data = localStorage.getItem("taskList");
-      taskObj.taskList = JSON.parse(data);
-
-      if (taskObj.taskList.length > 0) {
-        taskObj.taskId = Math.max(...taskObj.taskList.map(t => t.id));
-      }
-
-      displaylists();
-    }
-  } else {
-    alert("Your browser does not support local storage!");
-  }
-}
-
-// Save tasks to localStorage
-function saveTaskList() {
-  if (window.localStorage) {
-    let data = JSON.stringify(taskObj.taskList);
-    localStorage.setItem("taskList", data);
-  } else {
-    alert("Your browser does not support local storage!");
-  }
-}
-
+let undoStack = [];
+let redoStack = [];
 // Display all tasks
 function displaylists() {
   let ul = document.querySelector(".task-lst");
@@ -60,7 +34,7 @@ function addfunction() {
   }
   
   taskObj.addTask(add_tasks, urgency, difficulty, tags);
-  saveTaskList();
+  
   displaylists();
 
   document.querySelector('.task-input').value = "";
@@ -103,5 +77,7 @@ function editTask(id) {
 }
 
 // Initialize
-loadTaskList();
+
+taskObj.load();
+displaylists();
 add();
