@@ -1,5 +1,5 @@
 class Task {
-  constructor(id, title, urgency, difficulty, tags, estTime, createdAt, updatedAt, versions=[], done=false) {
+  constructor(id, title, urgency, difficulty, tags, estTime, createdAt, updatedAt) {
     this.id = id;
     this.title = title;
     this.urgency = urgency;
@@ -8,71 +8,17 @@ class Task {
     this.estTime = estTime;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
-    this.versions = versions;
-    this.done = done;
   }
 }
 
-function undo() {
-  if (undoStack.length === 0) {
-    alert("Nothing to undo");
-    return;
-  }
+let undoStack = [];
+let redoStack = [];
 
-  let operation = undoStack.pop();
-
-  if (operation.type === "ADD") {
-    // reverse of add → remove the task
-    let id = operation.payload.id;
-    let task = taskObj.taskList.find(t => t.id === id);
-    if (task) {
-      // save this delete to redo stack
-      redoStack.push({
-        type: "ADD",
-        payload: { id }
-      });
-
-      taskObj.taskList = taskObj.taskList.filter(t => t.id !== id);
-      taskObj.save();
-    }
-  }
-
-  else if (operation.type === "DELETE") {
-    // reverse of delete → restore the task
-    let removed = operation.payload;
-
-    redoStack.push({
-      type: "DELETE",
-      payload: removed
-    });
-
-    taskObj.taskList.push(removed);
-    taskObj.save();
-  }
-
-  else if (operation.type === "UPDATE") {
-    // reverse of update → restore BEFORE version
-    let { before, after } = operation.payload;
-
-    redoStack.push({
-      type: "UPDATE",
-      payload: { before, after }
-    });
-
-    let task = taskObj.taskList.find(t => t.id === before.id);
-    if (task) {
-      Object.assign(task, before);
-      taskObj.save();
-    }
-  }
-
-  displaylists();
-}
-// Task manager object
 let taskObj = {
   taskList: [],
   taskId: 0,
-  addTask: function(title, urgency, difficulty, tags, estTime) {
+
+  addTask(title, urgency, difficulty, tags, estTime) {
     this.taskId++;
     let newTask = new Task(
       this.taskId,
@@ -82,58 +28,94 @@ let taskObj = {
       tags,
       estTime || 0,
       new Date().toISOString(),
-      new Date().toISOString(),
-      [],
-      
+      new Date().toISOString()
     );
+
     this.taskList.push(newTask);
+
     undoStack.push({
       type: "ADD",
-      payload: { id: newTask.id }
+      task: JSON.parse(JSON.stringify(newTask)),
     });
     redoStack = [];
+
     this.save();
   },
-  updateTask: function(id, newValues) {
-  let task = this.taskList.find(t => t.id === id);
-  if (!task) return;
 
-  // Save OLD version
-  let oldCopy = JSON.parse(JSON.stringify(task));
+  updateTask(id, newValues) {
+    let task = this.taskList.find(t => t.id === id);
+    if (!task) return;
 
-  // Apply updates
-  Object.assign(task, newValues);
-task.updatedAt = new Date().toISOString();
+    undoStack.push({
+      type: "UPDATE",
+      before: JSON.parse(JSON.stringify(task)),
+    });
+    redoStack = [];
 
-  // Save NEW version
-  let newCopy = JSON.parse(JSON.stringify(task));
+    Object.assign(task, newValues);
+    task.updatedAt = new Date().toISOString();
 
-  // Save undo operation
-  undoStack.push({
-    type: "UPDATE",
-    payload: { before: oldCopy, after: newCopy }
-  });
-  redoStack = [];
+    this.save();
+  },
 
-  this.save();
-},
-deleteTask: function(id) {
-  // Find task before deleting
-  let removedTask = this.taskList.find(t => t.id === id);
-  if (!removedTask) return;
+  deleteTask(id) {
+    let task = this.taskList.find(t => t.id === id);
+    if (!task) return;
 
-  // Remove from list
-  this.taskList = this.taskList.filter(t => t.id !== id);
+    undoStack.push({
+      type: "DELETE",
+      task: JSON.parse(JSON.stringify(task)),
+    });
+    redoStack = [];
 
-  // Save undo operation
-  undoStack.push({
-    type: "DELETE",
-    payload: removedTask
-  });
-  redoStack = [];
+    this.taskList = this.taskList.filter(t => t.id !== id);
 
-  this.save();
-},
+    this.save();
+  },
+
+  undo() {
+    if (undoStack.length === 0) return;
+
+    let action = undoStack.pop();
+    redoStack.push(JSON.parse(JSON.stringify(action)));
+
+    if (action.type === "ADD") {
+      this.taskList = this.taskList.filter(t => t.id !== action.task.id);
+    }
+
+    else if (action.type === "UPDATE") {
+      let t = this.taskList.find(x => x.id === action.before.id);
+      Object.assign(t, action.before);
+    }
+
+    else if (action.type === "DELETE") {
+      this.taskList.push(action.task);
+    }
+
+    this.save();
+  },
+
+  redo() {
+    if (redoStack.length === 0) return;
+
+    let action = redoStack.pop();
+    undoStack.push(JSON.parse(JSON.stringify(action)));
+
+    if (action.type === "ADD") {
+      this.taskList.push(action.task);
+    }
+
+    else if (action.type === "UPDATE") {
+      let t = this.taskList.find(x => x.id === action.before.id);
+      Object.assign(t, action.after);
+    }
+
+    else if (action.type === "DELETE") {
+      this.taskList = this.taskList.filter(t => t.id !== action.task.id);
+    }
+
+    this.save();
+  },
 
   save() {
     localStorage.setItem("taskList", JSON.stringify(this.taskList));

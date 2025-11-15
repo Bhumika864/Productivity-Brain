@@ -11,6 +11,45 @@
     <nav><div class="title">Productivity Brain</div> Date</nav>
     <hr>
     <button onclick="undo()">Undo</button>
+<button onclick="redo()">Redo</button>
+
+<div class="filter-box">
+
+  <input type="text" class="filter-search" placeholder="Search title...">
+
+  <select class="filter-urgency">
+    <option value="">Urgency</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+  </select>
+
+  <select class="filter-difficulty">
+    <option value="">Difficulty</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+  </select>
+
+  <input type="text" class="filter-tags" placeholder="Tags…">
+
+  <button onclick="applyFilters()">Apply</button>
+  <button onclick="clearFilters()">Clear</button>
+
+</div>
+
+
+
+<div>
+  Energy Today:
+  <input type="range" min="1" max="10" value="5" class="energy-input" oninput="showRankedTasks()">
+
+</div>
+
     <div class="left-part">
       <div class="filters">
       </div>
@@ -52,3 +91,5 @@
 </body>
 
 </html>
+
+
